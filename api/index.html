@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhishGuard — Phishing Website Detection</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#070b14;color:#eef2ff;min-height:100vh}.wrap{max-width:980px;margin:auto;padding:52px 22px 40px}.hero{text-align:center}.badge{display:inline-flex;padding:7px 12px;border:1px solid #26334f;border-radius:999px;background:#10182a;color:#9db6e8;font-size:13px}.hero h1{font-size:clamp(34px,6vw,62px);line-height:1.02;margin:18px 0 12px;letter-spacing:-2px}.hero p{color:#9ca9c3;max-width:690px;margin:0 auto 32px;font-size:17px;line-height:1.6}.card{background:#0d1321;border:1px solid #1c2941;border-radius:22px;padding:24px;box-shadow:0 20px 70px rgba(0,0,0,.25)}.inputrow{display:flex;gap:12px}.inputrow input{flex:1;background:#080d18;border:1px solid #2a3957;color:white;border-radius:13px;padding:16px;font-size:16px;outline:none}.inputrow input:focus{border-color:#6f8fd6}.btn{border:0;border-radius:13px;padding:0 22px;font-weight:700;background:#f4f7ff;color:#08101d;cursor:pointer;min-width:150px}.btn:disabled{opacity:.6;cursor:wait}.hint{color:#77849b;font-size:13px;margin-top:10px}.result{margin-top:22px;padding:22px;border-radius:18px;border:1px solid #26334d}.result.phishing{background:#241217;border-color:#7c2e3a}.result.legit{background:#10231c;border-color:#285e48}.verdict{font-size:30px;font-weight:800;margin:4px 0 6px}.sub{color:#aab5c9}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.metric{background:#080d18;border:1px solid #1d2a40;border-radius:14px;padding:14px}.metric small{display:block;color:#75839b;margin-bottom:5px}.metric strong{font-size:20px}.features{margin-top:18px}.features h3{margin-bottom:8px}.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{font-size:13px;padding:7px 10px;border-radius:999px;background:#1a2233;color:#cbd5e8}.muted{color:#77849b;font-size:13px;line-height:1.5}.footer{margin-top:26px;text-align:center;color:#5f6b80;font-size:12px}@media(max-width:700px){.inputrow{flex-direction:column}.btn{height:52px}.grid{grid-template-columns:1fr 1fr}.wrap{padding-top:30px}}@media(max-width:450px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <span class="badge">🛡️ Machine Learning Security Research Project</span>
+    <h1>Phishing Website<br>Detection</h1>
+    <p>Enter a website URL. The system fetches the page, extracts URL and webpage signals, and classifies it as phishing or legitimate using an XGBoost model.</p>
+  </section>
+
+  <section class="card">
+    <div class="inputrow">
+      <input id="url" type="text" placeholder="https://example.com" autocomplete="off">
+      <button id="scan" class="btn">🔍 Check Website</button>
+    </div>
+    <div class="hint">For safety, the scanner only analyzes publicly reachable HTTP/HTTPS pages. Never enter passwords or payment details into a site just because the model says legitimate.</div>
+    <div id="result"></div>
+  </section>
+
+  <div class="footer">XGBoost • 30-feature phishing dataset • CV-derived decision threshold • Research/demo use</div>
+</div>
+<script>
+const btn=document.getElementById('scan'), input=document.getElementById('url'), out=document.getElementById('result');
+function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+async function scan(){
+  const url=input.value.trim(); if(!url){out.innerHTML='<div class="result"><div class="sub">Please enter a website URL.</div></div>';return}
+  btn.disabled=true; btn.textContent='Scanning…'; out.innerHTML='<div class="result"><div class="sub">⏳ Fetching and analyzing the website…</div></div>';
+  try{
+    const r=await fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data=await r.json(); if(!r.ok) throw new Error(data.detail||'Scan failed');
+    const phishing=data.verdict==='PHISHING';
+    const chips=data.suspicious_features.length?data.suspicious_features.map(x=>`<span class="chip">${esc(x)}</span>`).join(''):'<span class="muted">No highlighted suspicious signals.</span>';
+    out.innerHTML=`<div class="result ${phishing?'phishing':'legit'}"><div class="verdict">${phishing?'🚨 PHISHING WEBSITE':'✅ LEGITIMATE WEBSITE'}</div><div class="sub">Result: <strong>${esc(data.label)}</strong></div><div class="grid"><div class="metric"><small>Phishing Score</small><strong>${data.score}%</strong></div><div class="metric"><small>Decision Threshold</small><strong>${data.threshold}%</strong></div><div class="metric"><small>Features Analyzed</small><strong>${data.features_analyzed}/30</strong></div></div><div class="features"><h3>🔎 Detected Signals</h3><div class="chips">${chips}</div></div><p class="muted" style="margin-bottom:0">Final URL: ${esc(data.final_url)}<br>HTTP status: ${data.http_status}<br>${esc(data.disclaimer)}</p></div>`;
+  }catch(e){out.innerHTML=`<div class="result phishing"><div class="verdict">⚠️ Scan Failed</div><div class="sub">${esc(e.message)}</div></div>`}
+  finally{btn.disabled=false;btn.textContent='🔍 Check Website'}
+}
+btn.addEventListener('click',scan); input.addEventListener('keydown',e=>{if(e.key==='Enter')scan()});
+</script>
+</body></html>
