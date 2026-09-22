@@ -6,7 +6,6 @@ from urllib.parse import urlparse
 
 import joblib
 import numpy as np
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
@@ -590,18 +589,12 @@ def build_features(final_url, html):
             key,
             value
         )
+X = np.array(
+    [[features[column] for column in FEATURES]],
+    dtype=float
+)
 
-    dataframe = pd.DataFrame(
-        [
-            [
-                features[column]
-                for column in FEATURES
-            ]
-        ],
-        columns=FEATURES
-    )
-
-    return dataframe, features
+return X, features
 
 
 @app.get("/api/health")
