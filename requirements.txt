@@ -1,0 +1,8 @@
+fastapi>=0.115,<1
+pydantic>=2.0,<3
+joblib>=1.5,<2
+numpy>=2.0,<3
+pandas>=2.2,<3
+xgboost==3.2.0
+requests>=2.32,<3
+beautifulsoup4>=4.13,<5
